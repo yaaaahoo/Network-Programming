@@ -1,16 +1,17 @@
 #include "common.h"
 
-namespace common{
-size_t readn(int fd,void* buffer,size_t size)
+namespace common
 {
-    char*buffer_ptr=static_cast<char*>(buffer);
-    size_t len=size;
-    while(len>0)
+size_t readn(int fd, void* buffer, size_t size)
+{
+    char* buffer_ptr = static_cast<char*>(buffer);
+    size_t len = size;
+    while (len > 0)
     {
-        int res=read(fd,buffer_ptr,len);
-        if(res<0)
+        int res = read(fd, buffer_ptr, len);
+        if (res < 0)
         {
-            if(errno==EINTR)
+            if (errno == EINTR)
             {
                 // 考虑非阻塞的情况，需要再次调用read
                 continue;
@@ -22,11 +23,11 @@ size_t readn(int fd,void* buffer,size_t size)
             }
         }
 
-        len-=res;
-        buffer_ptr+=res;
+        len -= res;
+        buffer_ptr += res;
     }
 
     // 返回实际读取字节数
-    return size-len;
+    return size - len;
 }
-}
+}  // namespace common
