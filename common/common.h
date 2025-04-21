@@ -15,6 +15,8 @@
 
 #define MAX_LINE 4096
 
+#define BACKLOG 1024
+
 namespace common
 {
 size_t readn(int fd, void* buffer, size_t size);

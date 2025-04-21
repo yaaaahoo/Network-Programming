@@ -18,9 +18,13 @@ size_t readn(int fd, void* buffer, size_t size)
             }
             else
             {
-                // EOF，表示套接字关闭
                 return -1;
             }
+        }
+        else if (res == 0)
+        {
+            // EOF，表示套接字关闭
+            break;
         }
 
         len -= res;

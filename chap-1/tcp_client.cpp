@@ -1,6 +1,6 @@
 #include "common/common.h"
 
-#define MSG_SIZE 102400
+#define MSG_SIZE 10240
 
 void SendData(int sockfd)
 {
@@ -16,10 +16,10 @@ void SendData(int sockfd)
     while (remaining > 0)
     {
         int n_written = send(sockfd, c_ptr, remaining, 0);
-        fprintf(stdout, "send into buffer %ld \n", n_written);
+        std::cout << "send into buffer " << n_written << std::endl;
         if (n_written <= 0)
         {
-            fprintf(stdout, "send failed.\n");
+            std::cout << "send failed" << std::endl;
             return;
         }
 
@@ -32,26 +32,25 @@ int main(int argc, char** argv)
 {
     if (argc != 2)
     {
-        fprintf(stdout, "usage: tcpclient <IPaddress>");
+        std::cout << "usage: tcpclient <IPaddress>" << std::endl;
         return 0;
     }
 
-    int sockfd;
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
     struct sockaddr_in servaddr;
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(12345);
+    servaddr.sin_port = htons(SERV_PORT);
     inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
 
     int conn_rt = connect(sockfd, (struct sockaddr*)(&servaddr), (socklen_t)(sizeof(servaddr)));
     if (conn_rt < 0)
     {
-        fprintf(stdout, "connect failed\n");
+        std::cout << "connect failed" << std::endl;
     }
 
     SendData(sockfd);
+
     return 0;
 }

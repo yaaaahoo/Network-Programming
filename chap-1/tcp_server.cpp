@@ -7,25 +7,24 @@ void ReadData(int sockfd)
     int time = 0;
     for (;;)
     {
-        fprintf(stdout, "block in read\n");
-        if ((n = common::readn(sockfd, buf, 1024)) == 0)
+        std::cout << "block in read" << std::endl;
+        n = common::readn(sockfd, buf, 1024);
+        if (n == 0)
         {
             return;
         }
 
         time++;
-        fprintf(stdout, "1K read for %d\n", time);
+        std::cout << "1K read for " << time << std::endl;
         usleep(1000);
     }
 }
 
 int main()
 {
-    int listenfd, connfd;
-    struct sockaddr_in cliaddr, servaddr;
+    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-
+    struct sockaddr_in servaddr;
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -33,8 +32,10 @@ int main()
 
     bind(listenfd, (struct sockaddr*)(&servaddr), sizeof(servaddr));
 
-    listen(listenfd, 1024);
+    listen(listenfd, BACKLOG);
 
+    int connfd;
+    struct sockaddr_in cliaddr;
     socklen_t clilen = sizeof(cliaddr);
 
     // 循环处理用户请求
@@ -44,4 +45,6 @@ int main()
         ReadData(connfd);
         close(connfd);
     }
+
+    return 0;
 }
