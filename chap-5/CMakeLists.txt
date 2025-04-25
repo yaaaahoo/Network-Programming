@@ -1,0 +1,5 @@
+add_executable(keep_alive_client keep_alive_client.cpp)
+target_link_libraries(keep_alive_client common)
+
+add_executable(keep_alive_server keep_alive_server.cpp)
+target_link_libraries(keep_alive_server common)

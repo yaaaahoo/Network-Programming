@@ -34,4 +34,16 @@ size_t readn(int fd, void* buffer, size_t size)
     // 返回实际读取字节数
     return size - len;
 }
+
+void error(int err, char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    if (err)
+        fprintf(stderr, ": %s (%d)\n", strerror(err), err);
+
+    exit(1);
+}
 }  // namespace common

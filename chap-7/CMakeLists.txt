@@ -1,0 +1,2 @@
+add_executable(udp_connect_client udp_connect_client.cpp)
+target_link_libraries(udp_connect_client common)

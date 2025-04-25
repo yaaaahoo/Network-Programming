@@ -2,40 +2,37 @@
 
 using namespace common;
 
-static void handler(int signo)
-{
-    printf("client recv signo: %d\n", signo);
-    exit(0);
-}
-
 int main(int argc, char** argv)
 {
     if(argc<2)
     {
-        error(1, "need sock path");
+        error(1, "need ip");
     }
 
-    // 绑定信号处理函数
-    signal(SIGINT, handler);
-
-    int fd=socket(AF_LOCAL, SOCK_STREAM, 0);
-    if(fd==-1)
+    int fd=socket(AF_INET, SOCK_STREAM, 0);
+    if(fd<0)
     {
         error(errno, "create socket failed");
     }
 
-    struct sockaddr_un caddr;
-    caddr.sun_family=AF_LOCAL;
-    strcpy(caddr.sun_path, argv[1]);
-
+    struct sockaddr_in caddr;
+    caddr.sin_family=AF_INET;
+    caddr.sin_port=htons(SERV_PORT);
+    inet_pton(AF_INET, argv[1], &caddr.sin_addr.s_addr);
+    
     int ret=connect(fd, (struct sockaddr*)(&caddr), sizeof(caddr));
     if(ret!=0)
     {
-        error(errno, "connect failed");
+        error(errno, "connect error");
     }
 
     char buffer[MAX_LEN];
-    while(true)
+    char* pre_str="I am ";
+    struct iovec iov[2];
+    iov[0].iov_base=pre_str;
+    iov[0].iov_len=strlen(pre_str);
+
+    while(1)
     {
         bzero(buffer, sizeof(buffer));
         if(fgets(buffer, sizeof(buffer), stdin)!=nullptr)
@@ -45,13 +42,16 @@ int main(int argc, char** argv)
             {
                 buffer[len-1]='\0';
             }
-            
-            ssize_t n=write(fd, buffer, sizeof(buffer));
-            if(n<0)
+
+            iov[1].iov_base=buffer;
+            iov[1].iov_len=len;
+
+            int wn=writev(fd, iov, 2);
+            if(wn<0)
             {
-                error(errno, "client write error");
+                error(errno, "writev error");
             }
-            printf("client send data: %s\n", buffer);
+            
         }
     }
 

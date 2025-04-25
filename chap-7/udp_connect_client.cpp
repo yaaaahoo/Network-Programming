@@ -15,10 +15,8 @@ int main(int argc, char** argv)
         error(0, "client: need ip");
     }
 
-    // 绑定信号处理函数
     signal(SIGINT, handler);
 
-    // 创建 socket
     int fd=socket(AF_INET, SOCK_DGRAM, 0);
     if(fd==-1)
     {
@@ -32,6 +30,14 @@ int main(int argc, char** argv)
     saddr.sin_family=AF_INET;
     saddr.sin_port=htons(SERV_PORT);
     inet_pton(AF_INET, argv[1], &saddr.sin_addr.s_addr);
+
+    // 连接，主要是为了绑定信息
+    int ret=connect(fd, (struct sockaddr*)(&saddr), sizeof(saddr));
+    if(ret!=0)
+    {
+        error(1, "connect failed");
+    }
+    
 
     struct sockaddr_in caddr;
     socklen_t c_len=sizeof(caddr);

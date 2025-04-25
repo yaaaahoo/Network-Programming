@@ -12,64 +12,67 @@ int main(int argc, char** argv)
 {
     // 绑定信号处理函数
     signal(SIGINT, handler);
+    signal(SIGPIPE, SIG_IGN);
 
-    // 创建socket
-    int ret=0;
     int fd=socket(AF_INET, SOCK_STREAM, 0);
     if(fd==-1)
     {
-        error(errno, "create socket error");
+        error(errno, "create socket failed");
     }
 
-    // 绑定到端口
+    int ret=0;
     struct sockaddr_in saddr;
     saddr.sin_family=AF_INET;
-    saddr.sin_addr.s_addr=htonl(INADDR_ANY);
     saddr.sin_port=htons(SERV_PORT);
-    
+    saddr.sin_addr.s_addr=htonl(INADDR_ANY);
     ret=bind(fd, (struct sockaddr*)(&saddr), sizeof(saddr));
     if(ret!=0)
     {
         error(errno, "bind failed");
     }
 
-    // 开启监听
     ret=listen(fd, BACKLOG);
     if(ret!=0)
     {
         error(errno, "listen failed");
     }
 
-    // 从全连接队列中取出连接
     struct sockaddr_in caddr;
-    socklen_t caddr_len=sizeof(caddr);
-    int conn_fd=accept(fd, (struct sockaddr*)(&caddr), &caddr_len);
-    if(conn_fd==-1)
+    socklen_t clen=sizeof(caddr);
+    int conn_fd=accept(fd, (struct sockaddr*)(&caddr), &clen);
+    if(conn_fd<0)
     {
         error(errno, "accept failed");
     }
 
-    // 读取数据
-    char buffer[MAX_LEN];
-    while(true)
+    char recv_buffer[MAX_LEN];
+    char send_buffer[MAX_LEN];
+    while(1)
     {
-        bzero(buffer, sizeof(buffer));
-        ssize_t n=read(conn_fd, buffer, sizeof(buffer));
-        if(n>0)
+        int rn=read(conn_fd, recv_buffer, sizeof(recv_buffer));
+        if(rn>0)
         {
-            buffer[n-1]='\0';
-            printf("server recv data: %s", buffer);
+            recv_buffer[rn-1]='\0';
+            printf("server recv data: %s\n", recv_buffer);
         }
-        else if(n==0)
+        else if(rn==0)
         {
             // EOF
-            printf("client closed.\n");
+            printf("client closed\n");
             break;
         }
         else
         {
-            // error
-            error(errno, "read failed");
+            error(errno, "server read failed");
+        }
+
+        sleep(5);
+
+        sprintf(send_buffer, "Hi, %s", recv_buffer);
+        rn=write(conn_fd, send_buffer, sizeof(send_buffer));
+        if(rn<0)
+        {
+            error(errno, "server write failed");
         }
     }
 

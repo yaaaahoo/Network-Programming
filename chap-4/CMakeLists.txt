@@ -1,0 +1,5 @@
+add_executable(exit_tcp_client exit_tcp_client.cpp)
+target_link_libraries(exit_tcp_client common)
+
+add_executable(exit_tcp_server exit_tcp_server.cpp)
+target_link_libraries(exit_tcp_server common)

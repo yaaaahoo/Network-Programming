@@ -1,32 +1,74 @@
-#include <sys/un.h>
+#include "common/common.h"
 
-#include "common.h"
+using namespace common;
+
+static void handler(int signo)
+{
+    printf("server recv signo: %d\n", signo);
+    exit(0);
+}
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
+    if(argc<2)
     {
-        std::cout << "server: need local sock file" << std::endl;
-        return 0;
+        error(1, "need sock path");
     }
 
-    int listenfd = socket(AF_LOCAL, SOCK_STREAM, 0);
+    // 绑定信号处理函数
+    signal(SIGINT, handler);
 
-    struct sockaddr_un cli_addr, server_addr;
-    char* local_path = argv[1];
-    unlink(local_path);
-    server_addr.sun_family = AF_LOCAL;
-    strcpy(server_addr.sun_path, local_path);
-
-    if (bind(listenfd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    int fd=socket(AF_LOCAL, SOCK_STREAM, 0);
+    if(fd==-1)
     {
-        std::cout << "bind failed." << std::endl;
-        return -1;
+        error(errno, "create socket failed");
     }
 
-    if (listen(listenfd, BACKLOG) < 0)
+    struct sockaddr_un saddr;
+    saddr.sun_family=AF_LOCAL;
+    strcpy(saddr.sun_path, argv[1]);
+    unlink(saddr.sun_path);
+
+    int ret=bind(fd, (struct sockaddr*)(&saddr), sizeof(saddr));
+    if(ret!=0)
     {
-        std::cout << "listen failed." << std::endl;
-        return -1;
+        error(errno, "bind error");
     }
+
+    ret=listen(fd, BACKLOG);
+    if(ret!=0)
+    {
+        error(errno, "listen error");
+    }
+
+    char buffer[MAX_LEN];
+    struct sockaddr_in caddr;
+    socklen_t caddr_len=sizeof(caddr);
+
+    int conn_fd=accept(fd, (struct sockaddr*)(&caddr), &caddr_len);
+    if(conn_fd==-1)
+    {
+        error(errno, "accept failed");
+    }
+
+    while(true)
+    {
+        bzero(buffer, sizeof(buffer));
+        int n=read(conn_fd, buffer, sizeof(buffer));
+        if(n>0)
+        {
+            printf("server recv data: %s\n", buffer);
+        }
+        else if(n==0)
+        {
+            // EOF
+            break;
+        }
+        else
+        {
+            error(errno, "read error");
+        }
+    }
+    
+    return 0;
 }

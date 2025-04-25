@@ -1,42 +1,75 @@
 #include "common/common.h"
 
-static int count = 0;
+using namespace common;
 
-static void RecvFromInt(int singo)
+static void handler(int signo)
 {
-    printf("\nrecieved %d datagrams\n", count);
+    printf("server recv signo: %d\n", signo);
     exit(0);
 }
 
 int main(int argc, char** argv)
 {
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    // 绑定信号处理函数
+    signal(SIGINT, handler);
 
-    struct sockaddr_in servaddr;
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(SERV_PORT);
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    bind(sockfd, (struct sockaddr*)(&servaddr), (socklen_t)(sizeof(servaddr)));
-
-    signal(SIGINT, RecvFromInt);
-
-    struct sockaddr_in cliaddr;
-    socklen_t clilen = sizeof(cliaddr);
-    char buffer[MAX_LINE];
-
-    for (;;)
+    int fd=socket(AF_INET, SOCK_DGRAM, 0);
+    if(fd==-1)
     {
-        int n = recvfrom(sockfd, buffer, MAX_LINE, 0, (struct sockaddr*)(&cliaddr), &clilen);
-        buffer[n] = '\0';
-        printf("recv %d bytes: %s\n", n, buffer);
+        error(errno, "create socket failed");
+    }
 
-        char send_line[MAX_LINE];
-        sprintf(send_line, "Hi, %s\n", buffer);
-        sendto(sockfd, send_line, strlen(send_line), 0, (struct sockaddr*)(&cliaddr), clilen);
+    int ret=0;
+    struct sockaddr_in saddr;
+    saddr.sin_family=AF_INET;
+    saddr.sin_port=htons(SERV_PORT);
+    saddr.sin_addr.s_addr=htonl(INADDR_ANY);
 
-        count++;
+    ret=bind(fd, (struct sockaddr*)(&saddr), sizeof(saddr));
+    if(ret!=0)
+    {
+        error(errno, "bind failed");
+    }
+
+    char send_buffer[MAX_LEN];
+    char recv_buffer[MAX_LEN];
+    struct sockaddr_in caddr;
+    socklen_t c_len=sizeof(caddr);
+    while(true)
+    {
+        bzero(recv_buffer, sizeof(recv_buffer));
+        bzero(send_buffer, sizeof(send_buffer));
+
+        int rn=recvfrom(fd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*)(& caddr), &c_len);
+        if(rn>0)
+        {
+            printf("server recv data: %s", recv_buffer);
+        }
+        else if(rn==0)
+        {
+            break;
+        }
+        else
+        {
+            error(errno, "recvfrom error");
+        }
+
+        std::string ss=std::string("Hi, ")+std::string(recv_buffer);
+        strcpy(send_buffer, ss.c_str());
+
+        int sn=sendto(fd, send_buffer, sizeof(send_buffer), 0, (struct sockaddr*)(&caddr), c_len);
+        if(sn>0)
+        {
+            printf("server send data: %s", send_buffer);
+        }
+        else if(sn==0)
+        {
+            break;
+        }
+        else
+        {
+            error(errno, "sendto error");
+        }
     }
 
     return 0;

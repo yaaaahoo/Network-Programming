@@ -21,6 +21,9 @@ int main(int argc, char** argv)
         error(errno, "create socket error");
     }
 
+    int on=1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
     // 绑定到端口
     struct sockaddr_in saddr;
     saddr.sin_family=AF_INET;

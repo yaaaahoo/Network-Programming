@@ -1,0 +1,5 @@
+add_executable(local_tcp_client local_tcp_client.cpp)
+target_link_libraries(local_tcp_client common)
+
+add_executable(local_tcp_server local_tcp_server.cpp)
+target_link_libraries(local_tcp_server common)

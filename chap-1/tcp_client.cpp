@@ -1,56 +1,67 @@
 #include "common/common.h"
 
-#define MSG_SIZE 10240
+using namespace common;
 
-void SendData(int sockfd)
+static void handler(int signo)
 {
-    char* buffer = (char*)malloc(MSG_SIZE + 1);
-    for (int i = 0; i < MSG_SIZE; ++i)
-    {
-        buffer[i] = 'a';
-    }
-    buffer[MSG_SIZE] = '\0';
-
-    const char* c_ptr = buffer;
-    size_t remaining = strlen(buffer);
-    while (remaining > 0)
-    {
-        int n_written = send(sockfd, c_ptr, remaining, 0);
-        std::cout << "send into buffer " << n_written << std::endl;
-        if (n_written <= 0)
-        {
-            std::cout << "send failed" << std::endl;
-            return;
-        }
-
-        remaining -= n_written;
-        c_ptr += n_written;
-    }
+    printf("server recv signo: %d\n", signo);
+    exit(0);
 }
 
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    if(argc!=2)
     {
-        std::cout << "usage: tcpclient <IPaddress>" << std::endl;
-        return 0;
+        error(0, "client: need ip");
     }
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    // 绑定信号处理函数
+    signal(SIGINT, handler);
 
-    struct sockaddr_in servaddr;
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(SERV_PORT);
-    inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
-
-    int conn_rt = connect(sockfd, (struct sockaddr*)(&servaddr), (socklen_t)(sizeof(servaddr)));
-    if (conn_rt < 0)
+    // 创建socket
+    int fd=socket(AF_INET, SOCK_STREAM, 0);
+    if(fd==-1)
     {
-        std::cout << "connect failed" << std::endl;
+        error(errno, "create socket failed");
     }
 
-    SendData(sockfd);
+    // connect
+    int ret=0;
+    struct sockaddr_in caddr;
+    caddr.sin_family=AF_INET;
+    caddr.sin_port=htons(SERV_PORT);
+    inet_pton(AF_INET, argv[1], &caddr.sin_addr.s_addr);
+
+    ret=connect(fd, (struct sockaddr*)&caddr, sizeof(caddr));
+    if(ret==-1)
+    {
+        error(errno, "connect failed");
+    }
+
+    // 发送数据
+    char buffer[MAX_LEN];
+    while(true)
+    {
+        bzero(buffer, sizeof(buffer));
+        if(fgets(buffer, sizeof(buffer), stdin)!=nullptr)
+        {
+            int b_l=strlen(buffer);
+            if(buffer[b_l-1]=='\n')
+            {
+                buffer[b_l]='\0';
+            }
+
+            ssize_t n=write(fd, buffer, sizeof(buffer));
+            if(n<0)
+            {
+                error(errno, "client write error");
+            }
+            else
+            {
+                printf("client send data: %s", buffer);
+            }
+        }
+    }
 
     return 0;
 }
